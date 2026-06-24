@@ -1,22 +1,10 @@
 
 
-# Setting up ssh server with openssh.
+# OpenSSH Server Setup (Mint / Ubuntu-based)
 ---
 *03/29/2026*
 *mint cinnamon 22.03 Zena, Kernel 6.8.0, Ubuntu base 24.04 noble*
 Purpose: *To keep track of how i configured it and set it up*
-
->[!Contents]
->- [[#**Check if SSH server is installed**]]
->- [[#**Install SSH Server (Openssh)**]]
->- [[#**Enable service and check status**]]
->- [[#**Configuration File**]]
->- [[#**Test locally**]]
->- [[#**Apply firewall rules**]]
->- [[#**SETTING IT UP WITH KEYPAIRS**]]
->- [[#SECURITY]]
->
->**OTHER INFORMATION**
 
 ---
 ####  **Check if SSH server is installed**
@@ -24,8 +12,8 @@ Purpose: *To keep track of how i configured it and set it up*
 ```Bash
 dpkg -l | grep openssh
 ```
-You should see :
-`openssh-client` - for client, connecting to diff machine.
+You should see :  
+`openssh-client` - for client, connecting to diff machine.  
 `openssh-server` - for servers, to accept ssh connections.
 
 You can also check if its running:
@@ -33,7 +21,7 @@ You can also check if its running:
 	systemctl status ssh
 ```
 
-If none a message should appear:
+If none a message should appear:  
 *`Unit ssh.service could not be found`* or *`inactive`*
 
 ---
@@ -46,9 +34,9 @@ sudo apt install openssh-server
    
 #### **Enable service and check status**
 ```Bash
-   sudo systemctl enable ssh *#auto start on boot*
-   sudo systemctl start ssh *#START*
-   sudo systemctl status ssh *#check if running*
+   sudo systemctl enable ssh   #auto start on boot*
+   sudo systemctl start ssh    #START
+   sudo systemctl status ssh   #check if running
 ```
 
 Output should be : *`active(running)`*
@@ -61,8 +49,8 @@ sudo nano /etc/ssh/sshd_config
    **Settings** :
 ```text
 Port 22 #default port
-PermitRootLogin no #but the options can be prohibit-pass or yes
-PasswordAuthentication yes #if want to use password login (disable or comment this if using key pairs instead)
+PermitRootLogin no           # or prohibit-password, yes (not recommended)
+PasswordAuthentication yes   #if want to use password login (disable or comment this if using key pairs instead)
 LoginGraceTime 30
 ```
 	   
@@ -77,7 +65,7 @@ From the same machine(server). Run:
 ssh your_username@localhost
 ```
 
-A message will dispay :
+A message will dispay :  
 *`The authenticity of host 'localhost (127.0.0.1) can't be established.` `fingerprint is [SHA256 here] This is not known by` `any other names.'*
 *`Do you want to continue?`* Type yes
 
@@ -86,9 +74,11 @@ A message will dispay :
 
    In terminal:
 ```Bash
-sudo ufw allow ssh
-#or
-sudo ufw limit from 192.168.1.0/24 to any port 22 proto tcp   
+sudo ufw allow ssh #(not recommended for public exposure)
+#or with rate limiting within its LAN
+sudo ufw limit from 192.168.1.0/24 to any port 22 proto tcp
+# or Restrict + Rate limit 
+sudo ufw limit ssh
 ``` 
    
    Its better to recreate the rule than edit it.
@@ -98,64 +88,54 @@ sudo ufw status numbered
 #then
 sudo ufw delete [number]
 ```
-    
-   In GUI based.
-	   `Name: ssh`
-	   `Insert: 0`
-	   `Policy: Allow`
-	   `Direction: In`
-	   `Interface: All interface`
-	   `Log: Do not log`
-	   `Protocol: Both`
-	   `Ip from : [192.168.1.0/24] Ip to [blank]`
-	   `Port from : [22] Port to [22]`
-
 ---
 
 # **SETTING IT UP WITH KEYPAIRS**
 
-**1.Generate an SSH key pair (do this to the client side)**
+## 1.Generate an SSH key pair (do this to the client side)
 ```Bash
 ssh-keygen -t ed25519 -C "yourComment"
 ```
-   **Breakdown:**
-   `-t ed25519` - modern and secure key type
-   `-C` - for the comment, for easy identification in scalability. 
+   **Breakdown:**  
+  - `-t ed25519` - modern and secure key type  
+  - `-C` - for the comment, for easy identification in scalability.   
    
-   **A message will appear :** 
-	   `Enter file in which to save the key (home/linuxuser/.ssh/id_ed25519):`
-	   Press enter to accept the default location.
+   **A message will appear :**   
+	   `Enter file in which to save the key (home/linuxuser/.ssh/id_ed25519):`  
+	   Press enter to accept the default location.  
 	   
-   **Then it will ask:**
-	`Enter passphrase (empty for passphrase)`	
-	Enter a passphrase for extra security or leave empty for convenience
+   **Then it will ask:**  
+	`Enter passphrase (empty for passphrase)`	  
+	Enter a passphrase for extra security or leave empty for convenience  
 	
-   Result: Two files are actually created in `~/.ssh/`:
-	`id_ed25519` -> **private key** (keep it secret)
-	`id_ed25519.pub` -> **Public key** (to share with server)
+   Result: Two files are actually created in `~/.ssh/`:  
+-	`id_ed25519` -> **private key** (keep it secret)  
+-	`id_ed25519.pub` -> **Public key** (to share with server)  
 
-2.**Copy the public key to the ssh server**
+## 2.Copy the public key to the ssh server
 ```bash
 ssh-copy-id linuxuser@theIp
 ```
 	 
   Manual method (alternative)
+> Run this on the SERVER
 ```Bash
   cat ~/.ssh/id_ed25519.pub >> ~/.ssh/authorized_keys
   chmod 600 ~/.ssh/authorized_keys
 ```  
 
-3.**Test key-based login**
+## 3.Test key-based login
 ```Bash
 ssh linuxuser@ipaddress
 ```
 	
   If setup is correct, it should not ask for pass, only the passphrase if set one.
   if it still ask for password, then check the permission
-	`chmod 700 ~/.ssh`
-	`chmod 600 ~/.ssh/authorized_keys`
-
-4.**{OPTIONAL}Disable password login**
+```bash
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+```
+## 4.{OPTIONAL}Disable password login
 	Refer to number of 4 of [[#Setting up ssh server with openssh.]]
 
 ---
@@ -168,10 +148,10 @@ sudo apt update && sudo apt install fail2ban
 ```
 
 2. **Configure fail2ban, make a 'local' copy of the `jail.conf` file in `etc/fail2ban/`**
-   ```
-   cd /etc/fail2ban
-   sudo cp jail.conf jail.local
-   ```
+```
+cd /etc/fail2ban
+sudo cp jail.conf jail.local
+```
    Now edit the file:
 ```Bash
 sudo nano jail.local
@@ -182,7 +162,7 @@ sudo nano jail.local
 
    [sshd]
    enabled = true
-   port = 2222
+   port = 22
    filter = sshd
    logpath = /var/log/auth.log
    maxretry = 5
@@ -191,8 +171,6 @@ sudo nano jail.local
    
    [DEFAULT]
    ignoreip = 127.0.0.1/8 ::1
-   
-   [DEFAULT]
    destemail = myemail@email.com
    action = %(action_mw)s
 ```
@@ -213,114 +191,153 @@ sudo cat /var/log/fail2ban.log.1
 ---
 
 
->[!Question]- **POTENTIAL QUESTIONS**
->Not everyone can just copy their keys to the server. So how to login to this ssh server as a fresh user?
->If other method is allowed first to authenticate like `PasswordAuthentication` which can be enable in `etc/ssh/ssh_conf` then that defeats the purpose of avoiding brute forcing.
+## ❓ Potential Questions
 
->[!INFO]-  **STOPING SSH SERVICE**>
+Not everyone can simply copy their keys to the server. How can a fresh user authenticate to the SSH server?
+
+If `PasswordAuthentication` is temporarily enabled in `/etc/ssh/sshd_config`, does that partially defeat the purpose of preventing brute-force attacks?
+
+---
+
+## ℹ️ Stopping the SSH Service
+
+Halt the SSH daemon (`sshd`):
+
+```bash
+sudo systemctl stop ssh
+```
+
+Disable SSH from starting at boot:
+
+```bash
+sudo systemctl disable ssh
+```
+
+Stop and disable `ssh.socket` for additional security:
+
+```bash
+sudo systemctl stop ssh.socket
+sudo systemctl disable ssh.socket
+```
+
+---
+
+## 🧹 Removing SSH Including Configurations (Fresh Start)
+
+Delete the SSH rule from UFW:
+
+```bash
+sudo ufw status numbered
+```
+
+Then remove the rule:
+
+```bash
+sudo ufw delete <number>
+```
+
+Remove the package:
+
+```bash
+sudo apt purge openssh-server
+```
+
+Clean residual package files:
+
+```bash
+sudo apt autoclean
+sudo apt clean
+```
+
+Check for leftover configuration files:
+
+```bash
+ls /etc/ssh/
+```
+
+If files such as `sshd_config` still exist, remove them manually:
+
+```bash
+sudo rm -rf /etc/ssh
+```
+
+---
+
+## ⚠️ Regenerating Host Keys
+
+Generate a fresh host key pair:
+
+```bash
+sudo rm /etc/ssh/ssh_host_*
+sudo dpkg-reconfigure openssh-server
+```
+
+> **Warning**
 >
->Halt the SSH deamon(sshd)
-> ```
-> sudo systemctl stop ssh
-> ```
->
->Disable from starting boot
->```
->sudo system disable ssh
->```
->Stop and disable ssh.socket for security
->```
->sudo systemctl stop ssh.socket
->sudo systemctl disable ssh.socket
->```
+> Regenerating host keys changes the server's identity. Clients that have previously connected will receive a **"host key changed"** warning and may refuse to connect until their `known_hosts` entries are updated.
 
+# COMMON SSH USAGE (NETWORK ACCESS & TUNNELING)
 
->[!Info]- **REMOVING SSH INCLUDING CONFIGS ( FOR FRESH START)**
->Delete port in ufw
->```
-> sudo ufw status numbered 
->```
->Then
->```
->sudo ufw delete <number>
->```
-> 
->Remove package 
->```
->sudo apt purge openssh-server
->```
->   
->Clean residual files
->```
->sudo apt autoclean
->sudo apt clean
->```
->    
-> Check for leftover config files `ls /etc/ssh/`
-> If still see files like `sshd_config` , delete it manually 
-> ```
-> sudo rm -rf /etc/ssh
-> ```
-> 
-> 
+## Accessing Local Network of Server
 
-> [!WARNING]-
-> You can regenerate for fresh keypair with
-> ```
-> sudo rm /etc/ssh/ssh_host_*
-> sudo dpkg-reconfigure openssh-server
-> ```
-> 
->Removing and regenerating host keys will change the server's identity. Client that previously connected will see a "host key changed" warning and may refure to connect until they update their `known_host`
+*Overview: it’s possible, but not automatic. You need tunneling or a jump host setup, and the network must allow it.*
 
+Depends on configuration of the server and network:
 
-# COMMON USAGE AND COMMANDS
+- **Basic SSH session**  
+  You only access the server itself. You can run commands, transfer files, and manage that machine only.
 
-### ACCESSING LOCAL NETWORK OF SERVER
-*Overview: **it’s possible**, but it’s not automatic. You’d need to configure tunneling or use the server as a gateway, and the network must allow it.*
+- **Network visibility**  
+  If routing/firewall allows it, the server can act as a jump host to reach other devices on its LAN.
 
-depends on how the server and its network are configured:
+- **SSH tunneling / port forwarding**  
+  SSH supports local forwarding, remote forwarding, and dynamic SOCKS proxying to access internal services.
 
-- **Basic SSH session**: By default, you only have access to the server itself. You can run commands, transfer files, and interact with that machine, but not automatically with other devices on its local LAN.
-    
--  **Network visibility**: If the server has routing or firewall rules that allow it, you can use the server as a “jump host” to reach other machines on the same local network. For example, you might SSH from the server into another device on that LAN.
-    
-- **SSH tunneling / port forwarding**: SSH supports features like local port forwarding, remote port forwarding, and dynamic SOCKS proxying. These can let you route your traffic through the SSH server, effectively giving you access to services on its local network (if permitted).
-	
--  **Restrictions**: Access depends on permissions, firewall rules, and security policies. Some networks deliberately block this kind of lateral access for safety reasons.
+- **Restrictions**  
+  Access depends on firewall rules, routing, and security policies. Many networks block lateral movement.
 
->[!Example] 
->*Suppose there's a web service running *
->```Bash
->curl http://192.168.1.50:8080
->#This command will work if you run it inside your SSH session, because the server can see that local IP and port.
->```
->
->If you want to access that local service **from your own computer’s browser or curl**, you’ll need to set up SSH port forwarding. For instance:
->```Bash
->ssh -L 8080:192.168.1.50:8080 user@your-ssh-server
->#- `-L` means local port forwarding.
->#- The first `8080` is the port on your local machine.
->#- `192.168.1.50:8080` is the target inside the SSH server’s LAN. - `user@your-ssh-server` is your SSH login.
->```
->After running that, you can open your browser at `http://localhost:8080` or run:
->```Bash
->curl http://localhost:8080
->```
+---
 
->[!Note] Getting an error
->*If you get an error like the ff below:*
->```Error Message 
->curl: (7) Failed to connect to 127.0.0.1 port 5000 after 0 ms: Couldn't connect to server
->```
->
->Perform a test 
->```Bash
->python3 -m http.server 5000
->#That will start a simple HTTP server bound to `127.0.0.1:5000`
->```
->
->Verify locally via curl or accessing the browser directly
->```Bash
->curl http://127.0.0.1:5000
->```
+> **Example**
+
+Suppose there is a service running:
+
+```bash
+curl http://192.168.1.50:8080
+```
+
+This works inside the SSH session if the server can reach that IP.
+
+To access it from your own machine:
+
+```bash
+ssh -L 8080:192.168.1.50:8080 user@your-ssh-server
+```
+
+Then:
+
+```bash
+curl http://localhost:8080
+```
+
+---
+
+> **Note: Testing local server**
+
+If you get an error like:
+
+```text
+curl: (7) Failed to connect to 127.0.0.1 port 5000
+```
+
+Test with:
+
+```bash
+python3 -m http.server 5000
+```
+
+Then verify:
+
+```bash
+curl http://127.0.0.1:5000
+```
