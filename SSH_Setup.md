@@ -49,26 +49,34 @@ sudo nano /etc/ssh/sshd_config
    **Settings** :
 ```text
 Port 22 #default port
-PermitRootLogin no           # or prohibit-password, yes (not recommended)
+PermitRootLogin no           # or prohibit-password, yes (not recommended) | This forces attackers to know both a valid username and password rather than just targeting root directly
 PasswordAuthentication yes   #if want to use password login (disable or comment this if using key pairs instead)
-LoginGraceTime 30
+LoginGraceTime 30            # Limits hows long an authenticated connection stays open, reducing to exposure to slow brute force attempts
 ```
 	   
 save and restart : 
 ```Bash
 sudo systemctl restart ssh
 ```
-	
+
+---
+
 ####  **Test locally**
 From the same machine(server). Run:
 ```Bash
 ssh your_username@localhost
 ```
 
-A message will dispay :  
-*`The authenticity of host 'localhost (127.0.0.1) can't be established.` `fingerprint is [SHA256 here] This is not known by` `any other names.'*
-*`Do you want to continue?`* Type yes
+**A message will dispay :**
+```text
+The authenticity of host 'localhost (127.0.0.1) can't be established.
+fingerprint is [SHA256 here] This is not known by any other names.
+*`Do you want to continue?`*
 
+Type yes
+```
+
+---
 
 #### **Apply firewall rules**
 
@@ -177,7 +185,7 @@ sudo nano jail.local
 
 **Restart the service**
 ```
-   systemctl restart fail2ban
+   sudo systemctl restart fail2ban
    sudo fail2ban-client status sshd
 ```
 
