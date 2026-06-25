@@ -3,7 +3,7 @@
 # OpenSSH Server Setup (Mint / Ubuntu-based)
 ---
 *03/29/2026*
-*mint cinnamon 22.03 Zena, Kernel 6.8.0, Ubuntu base 24.04 noble*
+*mint cinnamon 22.03 Zena, Kernel 6.8.0, Ubuntu base 24.04 noble*  
 Purpose: *To keep track of how i configured it and set it up*
 
 ---
@@ -135,8 +135,8 @@ ssh linuxuser@ipaddress
 chmod 700 ~/.ssh
 chmod 600 ~/.ssh/authorized_keys
 ```
-## 4.{OPTIONAL}Disable password login
-	Refer to number of 4 of [[#Setting up ssh server with openssh.]]
+## 4. RECOMMENDED: Disable password login  
+  Refer to config file [OpenSSH_Config](#configuration-file)
 
 ---
 
